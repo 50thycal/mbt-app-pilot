@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f7f5f1" />
+  <title>Check In</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main id="app">
+    <!-- Screen 1: Check in -->
+    <section class="screen" data-screen="checkin">
+      <h1 class="prompt">What state are you in right now?</h1>
+      <div class="states" id="states"></div>
+    </section>
+
+    <!-- Screen 2: Action -->
+    <section class="screen hidden" data-screen="action">
+      <p class="eyebrow" id="action-state-name"></p>
+      <h2 class="message" id="action-message"></h2>
+      <p class="lead">Try this:</p>
+      <p class="action" id="action-text"></p>
+      <button class="link" id="another-btn" type="button">Try another approach</button>
+      <div class="spacer"></div>
+      <button class="primary" id="tried-btn" type="button">I tried it</button>
+      <button class="link subtle" id="back-btn" type="button">Back</button>
+    </section>
+
+    <!-- Screen 3: Feedback -->
+    <section class="screen hidden" data-screen="feedback">
+      <h2 class="prompt">Did that help?</h2>
+      <div class="feedback">
+        <button class="feedback-btn" data-feedback="yes" type="button">Yes</button>
+        <button class="feedback-btn" data-feedback="little" type="button">A little</button>
+        <button class="feedback-btn" data-feedback="no" type="button">No</button>
+      </div>
+    </section>
+
+    <!-- Screen 4: Reflection (optional) -->
+    <section class="screen hidden" data-screen="reflection">
+      <h2 class="prompt">What helped or didn't?</h2>
+      <p class="hint">Optional — leave blank to skip.</p>
+      <textarea id="reflection-text" rows="4" placeholder="A few words…"></textarea>
+      <button class="primary" id="save-btn" type="button">Save</button>
+      <button class="link subtle" id="skip-btn" type="button">Skip</button>
+    </section>
+
+    <!-- Screen 5: Done -->
+    <section class="screen hidden" data-screen="done">
+      <h2 class="prompt">Saved.</h2>
+      <button class="primary" id="again-btn" type="button">Check in again</button>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

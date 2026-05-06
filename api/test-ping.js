@@ -1,5 +1,6 @@
 import webpush from 'web-push';
 import { upstash } from './_upstash.js';
+import { logEvent } from './_log.js';
 
 const PROMPTS = [
   { title: 'Test bell', body: 'This is a test reminder.' },
@@ -57,13 +58,18 @@ export default async function handler(req, res) {
 
   try {
     await webpush.sendNotification(target, payload, { TTL: 60 });
+    await logEvent('info', 'test ping sent');
     return res.status(200).json({ ok: true, prompt });
   } catch (err) {
     if (err.statusCode === 404 || err.statusCode === 410) {
       try { await upstash(['SREM', 'awareness:subs', raw]); } catch (_) {}
+      await logEvent('warn', 'test ping: subscription expired', { status: err.statusCode });
       return res.status(410).json({ error: 'Subscription expired; please re-subscribe' });
     }
-    console.error('push failed', err.statusCode, err.body);
+    await logEvent('error', 'test ping delivery failed', {
+      status: err.statusCode,
+      body: err.body ? String(err.body).slice(0, 200) : null
+    });
     return res.status(502).json({ error: 'Push delivery failed', status: err.statusCode });
   }
 }

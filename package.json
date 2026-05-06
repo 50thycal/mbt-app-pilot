@@ -1,0 +1,16 @@
+{
+  "name": "awareness",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "icons": "node scripts/generate-icons.mjs",
+    "vapid": "node -e \"import('web-push').then(w => { const k = w.default.generateVAPIDKeys(); console.log('VAPID_PUBLIC_KEY=' + k.publicKey); console.log('VAPID_PRIVATE_KEY=' + k.privateKey); })\""
+  },
+  "dependencies": {
+    "web-push": "^3.6.7"
+  }
+}

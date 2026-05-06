@@ -96,17 +96,9 @@ function saveCheckin(feedback) {
     feedback: feedback || null
   };
   let list = [];
-  try {
-    list = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-  } catch (_) {
-    list = [];
-  }
+  try { list = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch (_) {}
   list.push(entry);
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-  } catch (_) {
-    // Storage may be unavailable — fail quietly.
-  }
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); } catch (_) {}
 }
 
 function complete(feedback) {
@@ -119,6 +111,156 @@ function reset() {
   show("checkin");
 }
 
+// ---------- Push reminders ----------
+
+function isStandalone() {
+  return window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true;
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64);
+  const out = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; ++i) out[i] = raw.charCodeAt(i);
+  return out;
+}
+
+async function getRegistration() {
+  if (!('serviceWorker' in navigator)) return null;
+  try {
+    return await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+  } catch (err) {
+    console.error('SW register failed', err);
+    return null;
+  }
+}
+
+async function currentSubscription() {
+  const reg = await navigator.serviceWorker.getRegistration('/');
+  if (!reg) return null;
+  return reg.pushManager.getSubscription();
+}
+
+function setRemindersUI({ status, action, hint }) {
+  $("#reminders-status").textContent = status;
+  const toggle = $("#reminders-toggle");
+  if (action) {
+    toggle.textContent = action.label;
+    toggle.disabled = !!action.disabled;
+    toggle.dataset.mode = action.mode;
+    toggle.classList.toggle('hidden', false);
+  } else {
+    toggle.classList.add('hidden');
+  }
+  const hintEl = $("#reminders-hint");
+  if (hint) {
+    hintEl.textContent = hint;
+    hintEl.classList.remove('hidden');
+  } else {
+    hintEl.classList.add('hidden');
+  }
+}
+
+async function refreshRemindersUI() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    setRemindersUI({
+      status: 'Reminders not supported on this browser.',
+      action: null
+    });
+    return;
+  }
+
+  if (!isStandalone()) {
+    setRemindersUI({
+      status: 'Reminders need the home-screen app.',
+      action: null,
+      hint: 'On iPhone: tap Share → Add to Home Screen, then open it from there.'
+    });
+    return;
+  }
+
+  if (Notification.permission === 'denied') {
+    setRemindersUI({
+      status: 'Notifications are blocked.',
+      action: null,
+      hint: 'Enable in iOS Settings → Notifications → Awareness.'
+    });
+    return;
+  }
+
+  const sub = await currentSubscription();
+  if (sub) {
+    setRemindersUI({
+      status: 'Reminders on.',
+      action: { label: 'Turn off', mode: 'off' }
+    });
+  } else {
+    setRemindersUI({
+      status: 'Reminders off.',
+      action: { label: 'Turn on gentle reminders', mode: 'on' }
+    });
+  }
+}
+
+async function enableReminders() {
+  try {
+    const reg = await getRegistration();
+    if (!reg) throw new Error('Service worker unavailable');
+    await navigator.serviceWorker.ready;
+
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') {
+      await refreshRemindersUI();
+      return;
+    }
+
+    const res = await fetch('/api/vapid');
+    if (!res.ok) throw new Error('Could not load VAPID key');
+    const { publicKey } = await res.json();
+    if (!publicKey) throw new Error('Server has no VAPID key configured');
+
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey)
+    });
+
+    const r = await fetch('/api/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sub)
+    });
+    if (!r.ok) throw new Error('Server rejected subscription');
+
+    await refreshRemindersUI();
+  } catch (err) {
+    console.error(err);
+    setRemindersUI({
+      status: 'Could not turn on reminders.',
+      action: { label: 'Try again', mode: 'on' },
+      hint: err.message
+    });
+  }
+}
+
+async function disableReminders() {
+  try {
+    const sub = await currentSubscription();
+    if (sub) {
+      await fetch('/api/subscribe', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ endpoint: sub.endpoint })
+      });
+      await sub.unsubscribe();
+    }
+    await refreshRemindersUI();
+  } catch (err) {
+    console.error(err);
+  }
+}
+
 function bind() {
   $$(".feedback-btn").forEach(btn => {
     btn.addEventListener("click", () => complete(btn.dataset.feedback));
@@ -126,8 +268,15 @@ function bind() {
   $("#skip-btn").addEventListener("click", () => complete(null));
   $("#continue-btn").addEventListener("click", () => complete(null));
   $("#again-btn").addEventListener("click", reset);
+
+  $("#reminders-toggle").addEventListener("click", (e) => {
+    const mode = e.currentTarget.dataset.mode;
+    if (mode === 'on') enableReminders();
+    else if (mode === 'off') disableReminders();
+  });
 }
 
 renderStates();
 bind();
 show("checkin");
+refreshRemindersUI();

@@ -143,7 +143,7 @@ async function currentSubscription() {
   return reg.pushManager.getSubscription();
 }
 
-function setRemindersUI({ status, action, hint }) {
+function setRemindersUI({ status, action, hint, showTest }) {
   $("#reminders-status").textContent = status;
   const toggle = $("#reminders-toggle");
   if (action) {
@@ -154,6 +154,10 @@ function setRemindersUI({ status, action, hint }) {
   } else {
     toggle.classList.add('hidden');
   }
+  const testBtn = $("#reminders-test");
+  testBtn.classList.toggle('hidden', !showTest);
+  testBtn.disabled = false;
+  testBtn.textContent = 'Send test reminder';
   const hintEl = $("#reminders-hint");
   if (hint) {
     hintEl.textContent = hint;
@@ -194,7 +198,8 @@ async function refreshRemindersUI() {
   if (sub) {
     setRemindersUI({
       status: 'Reminders on.',
-      action: { label: 'Turn off', mode: 'off' }
+      action: { label: 'Turn off', mode: 'off' },
+      showTest: true
     });
   } else {
     setRemindersUI({
@@ -244,6 +249,33 @@ async function enableReminders() {
   }
 }
 
+async function sendTestReminder() {
+  const btn = $("#reminders-test");
+  const hintEl = $("#reminders-hint");
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  hintEl.classList.add('hidden');
+  try {
+    const sub = await currentSubscription();
+    if (!sub) throw new Error('No active subscription');
+    const r = await fetch('/api/test-ping', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ endpoint: sub.endpoint })
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+    btn.textContent = 'Sent — check your lock screen';
+    setTimeout(() => { btn.textContent = 'Send test reminder'; btn.disabled = false; }, 4000);
+  } catch (err) {
+    console.error(err);
+    btn.textContent = 'Send test reminder';
+    btn.disabled = false;
+    hintEl.textContent = 'Could not send: ' + err.message;
+    hintEl.classList.remove('hidden');
+  }
+}
+
 async function disableReminders() {
   try {
     const sub = await currentSubscription();
@@ -274,6 +306,8 @@ function bind() {
     if (mode === 'on') enableReminders();
     else if (mode === 'off') disableReminders();
   });
+
+  $("#reminders-test").addEventListener("click", sendTestReminder);
 }
 
 renderStates();

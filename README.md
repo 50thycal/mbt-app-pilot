@@ -62,6 +62,30 @@ Push to the branch Vercel watches. Vercel installs deps and deploys.
 4. Tap **Turn on gentle reminders**. Approve the permission prompt.
 5. Reminders should now fire on schedule, even with the phone locked.
 
+## Logs branch
+
+For autonomous monitoring (so an agent or human can read state without going to Vercel), `/api/cron/ping` writes a snapshot to `state.json` on a dedicated `logs` branch on each run. The snapshot contains:
+
+- `subs` — subscription count
+- `lastPing` — `{sent, failed, dropped, total, prompt}`
+- `env` — boolean presence flags for VAPID, storage, GitHub, cron secret
+- `recentLogs` — the last ~50 events (info/warn/error) from `awareness:logs` in Upstash
+
+To enable, create a fine-grained GitHub PAT:
+
+1. github.com → Settings → Developer settings → **Fine-grained tokens** → **Generate new token**
+2. Repository access: **Only select repositories** → `mbt-app-pilot`
+3. Permissions: **Repository permissions → Contents: Read and write**
+4. Generate, copy the token
+
+Add to Vercel project env vars:
+
+| Name | Value |
+| --- | --- |
+| `GH_TOKEN` | the PAT |
+
+The `logs` branch is created automatically on the first ping after the token is set. If `GH_TOKEN` is missing, log commits are silently skipped — pushes still go out as normal.
+
 ## Cron
 
 The `/api/cron/ping` endpoint sends one bell to every stored subscription. It's auth'd via `Authorization: Bearer <CRON_SECRET>` and accepts GET or POST.

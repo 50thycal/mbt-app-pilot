@@ -1,37 +1,40 @@
 # mbt-app-pilot
 
-**Conscious State Loop — MVP**
+**Awareness Loop — MVP**
 
-A real-time state intervention tool. The loop:
-**State → Action → Feedback → Repeat.**
+A gentle wake-up system for attention. The loop:
+**Prompt → State → Awareness Cue → Return to life.**
+
+Not a productivity app. Not a tracker. The product is the moment of noticing.
 
 ## Run it
 
-It's static HTML — open `index.html` in a browser, or serve the directory:
+Static HTML — open `index.html`, or serve the directory:
 
 ```sh
 python3 -m http.server 8000
 # then visit http://localhost:8000
 ```
 
+Deploys to Vercel as a plain static site (no framework, no build).
+
 ## Files
 
-- `index.html` — screens for check-in, action, feedback, reflection, done
-- `styles.css` — minimal styling, light/dark, large tap targets
+- `index.html` — three screens: check-in, awareness, done
+- `styles.css` — spacious, warm, light/dark
 - `app.js` — state list, screen logic, localStorage persistence
 
 ## Data
 
-Each check-in is stored locally under `csl_checkins_v1` in `localStorage` as:
+Each check-in is stored locally under `awareness_checkins_v1` in `localStorage`:
 
 ```json
 {
-  "timestamp": "2026-05-05T12:00:00.000Z",
-  "state": "looping",
-  "stateLabel": "Looping",
-  "action": "Write the thought down once, then stop engaging with it.",
-  "feedback": "yes" | "little" | "no",
-  "reflection": ""
+  "timestamp": "2026-05-06T12:00:00.000Z",
+  "state": "wandering",
+  "stateLabel": "Wandering",
+  "intervention": "Take one conscious breath.",
+  "feedback": "yes" | "little" | "no" | null
 }
 ```
 

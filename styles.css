@@ -187,6 +187,35 @@ html, body {
 
 .link:hover { opacity: 0.75; }
 
+.reminders {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.reminders-status {
+  color: var(--muted);
+  font-size: 14px;
+  margin: 0;
+}
+
+.reminders-hint {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 4px 0 0;
+}
+
+.reminders .link {
+  padding-left: 0;
+  padding-right: 0;
+  font-size: 15px;
+}
+
 @media (max-width: 380px) {
   .states { grid-template-columns: 1fr; }
   .prompt { font-size: 22px; }

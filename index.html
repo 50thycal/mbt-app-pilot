@@ -4,8 +4,14 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#f4f1ea" />
-  <title>Awareness</title>
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Awareness" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="icon" href="/icon-192.png" type="image/png" />
   <link rel="stylesheet" href="styles.css" />
+  <title>Awareness</title>
 </head>
 <body>
   <main id="app">
@@ -13,6 +19,13 @@
     <section class="screen" data-screen="checkin">
       <h1 class="prompt">What is your mind doing right now?</h1>
       <div class="states" id="states"></div>
+
+      <div class="reminders" id="reminders">
+        <p class="reminders-status" id="reminders-status">Reminders off</p>
+        <button class="link" id="reminders-toggle" type="button">Turn on gentle reminders</button>
+        <button class="link hidden" id="reminders-test" type="button">Send test reminder</button>
+        <p class="reminders-hint hidden" id="reminders-hint"></p>
+      </div>
     </section>
 
     <!-- Screen 2: Awareness -->

@@ -2,82 +2,53 @@ const STATES = [
   {
     id: "focused",
     label: "Focused",
-    message: "You've got clear, directed attention.",
-    actions: [
-      "Stay with what you're doing — set a 25-minute timer to lock it in.",
-      "Note one thing that helped you get here.",
-      "Pick the next concrete step before the focus fades."
-    ]
+    message: "Clear, directed attention.",
+    action: null
   },
   {
     id: "wandering",
     label: "Wandering",
-    message: "Your attention is drifting.",
-    actions: [
-      "Pick one task and start a 2-minute timer.",
-      "Write down what you intended to do, then begin.",
-      "Stand up, stretch, and return with one clear next step."
-    ]
+    message: "Notice where your attention drifted.",
+    action: "Take one conscious breath."
   },
   {
     id: "looping",
     label: "Looping",
-    message: "You're likely stuck in a thought loop.",
-    actions: [
-      "Write the thought down once, then stop engaging with it.",
-      "Change your environment — different room, outside, or new view.",
-      "Interrupt physically: stand up and walk for 60 seconds."
-    ]
+    message: "You may be stuck in repetitive thought.",
+    action: "Observe the thought without continuing it."
+  },
+  {
+    id: "reacting",
+    label: "Reacting",
+    message: "Emotion may be driving attention right now.",
+    action: "Pause before continuing."
   },
   {
     id: "overstimulated",
     label: "Overstimulated",
-    message: "Too much input — you're scattered.",
-    actions: [
-      "Reduce input: silence, step away from screens for 60 seconds.",
-      "Close every app or tab except the one that matters.",
-      "Breathe slowly for 30 seconds — longer out than in."
-    ]
+    message: "Your attention may be overloaded.",
+    action: "Reduce input for 30 seconds."
   },
   {
-    id: "triggered",
-    label: "Emotionally Triggered",
-    message: "A strong emotional reaction is online.",
-    actions: [
-      "Name the emotion out loud or on paper.",
-      "Pause before reacting — wait 60 seconds before any reply.",
-      "Take 3 slow breaths before deciding what's next."
-    ]
-  },
-  {
-    id: "clear",
-    label: "Clear / Aware",
-    message: "Calm, observing, present.",
-    actions: [
-      "Stay with this for a moment — don't rush past it.",
-      "Note what helped you arrive here.",
-      "Pick something meaningful to do from this state."
-    ]
+    id: "present",
+    label: "Aware / Present",
+    message: "Good. Stay with this moment a little longer.",
+    action: null
   }
 ];
 
-const STORAGE_KEY = "csl_checkins_v1";
+const STORAGE_KEY = "awareness_checkins_v1";
 
-const session = {
-  state: null,
-  actionIndex: 0,
-  feedback: null,
-  startedAt: null
-};
+let current = null;
 
-function $(sel) { return document.querySelector(sel); }
-function $$(sel) { return Array.from(document.querySelectorAll(sel)); }
+function $(s) { return document.querySelector(s); }
+function $$(s) { return Array.from(document.querySelectorAll(s)); }
 
 function show(name) {
-  $$(".screen").forEach(s => {
-    s.classList.toggle("hidden", s.dataset.screen !== name);
+  $$(".screen").forEach(el => {
+    el.classList.toggle("hidden", el.dataset.screen !== name);
   });
-  window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
+  window.scrollTo(0, 0);
 }
 
 function renderStates() {
@@ -94,44 +65,35 @@ function renderStates() {
 }
 
 function selectState(id) {
-  session.state = STATES.find(s => s.id === id);
-  session.actionIndex = 0;
-  session.feedback = null;
-  session.startedAt = Date.now();
-  renderAction();
-  show("action");
+  current = STATES.find(s => s.id === id);
+  $("#aware-state").textContent = current.label;
+  $("#aware-message").textContent = current.message;
+
+  const actionEl = $("#aware-action");
+  const feedbackBlock = $("#feedback-block");
+  const continueBtn = $("#continue-btn");
+
+  if (current.action) {
+    actionEl.textContent = current.action;
+    actionEl.classList.remove("hidden");
+    feedbackBlock.classList.remove("hidden");
+    continueBtn.classList.add("hidden");
+  } else {
+    actionEl.classList.add("hidden");
+    feedbackBlock.classList.add("hidden");
+    continueBtn.classList.remove("hidden");
+  }
+
+  show("awareness");
 }
 
-function renderAction() {
-  const s = session.state;
-  $("#action-state-name").textContent = s.label;
-  $("#action-message").textContent = s.message;
-  $("#action-text").textContent = s.actions[session.actionIndex];
-  const hasMore = s.actions.length > 1;
-  $("#another-btn").style.display = hasMore ? "" : "none";
-}
-
-function cycleAction() {
-  const total = session.state.actions.length;
-  session.actionIndex = (session.actionIndex + 1) % total;
-  renderAction();
-}
-
-function recordFeedback(value) {
-  session.feedback = value;
-  show("reflection");
-  $("#reflection-text").value = "";
-  $("#reflection-text").focus();
-}
-
-function saveCheckin(reflection) {
+function saveCheckin(feedback) {
   const entry = {
     timestamp: new Date().toISOString(),
-    state: session.state.id,
-    stateLabel: session.state.label,
-    action: session.state.actions[session.actionIndex],
-    feedback: session.feedback,
-    reflection: reflection || ""
+    state: current.id,
+    stateLabel: current.label,
+    intervention: current.action || null,
+    feedback: feedback || null
   };
   let list = [];
   try {
@@ -143,36 +105,26 @@ function saveCheckin(reflection) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
   } catch (_) {
-    // Storage may be unavailable (private mode, etc.) — fail quietly.
+    // Storage may be unavailable — fail quietly.
   }
 }
 
+function complete(feedback) {
+  saveCheckin(feedback);
+  show("done");
+}
+
 function reset() {
-  session.state = null;
-  session.actionIndex = 0;
-  session.feedback = null;
-  session.startedAt = null;
+  current = null;
   show("checkin");
 }
 
 function bind() {
-  $("#another-btn").addEventListener("click", cycleAction);
-  $("#tried-btn").addEventListener("click", () => show("feedback"));
-  $("#back-btn").addEventListener("click", reset);
-
   $$(".feedback-btn").forEach(btn => {
-    btn.addEventListener("click", () => recordFeedback(btn.dataset.feedback));
+    btn.addEventListener("click", () => complete(btn.dataset.feedback));
   });
-
-  $("#save-btn").addEventListener("click", () => {
-    saveCheckin($("#reflection-text").value.trim());
-    show("done");
-  });
-  $("#skip-btn").addEventListener("click", () => {
-    saveCheckin("");
-    show("done");
-  });
-
+  $("#skip-btn").addEventListener("click", () => complete(null));
+  $("#continue-btn").addEventListener("click", () => complete(null));
   $("#again-btn").addEventListener("click", reset);
 }
 

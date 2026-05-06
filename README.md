@@ -64,12 +64,22 @@ Push to the branch Vercel watches. Vercel installs deps and deploys.
 
 ## Cron
 
-Default schedule in `vercel.json`: `0 14,17,20,23 * * *` UTC (= roughly 4× per day during waking hours in most US time zones). Adjust to taste.
+The `/api/cron/ping` endpoint sends one bell to every stored subscription. It's auth'd via `Authorization: Bearer <CRON_SECRET>` and accepts GET or POST.
 
-**Vercel Hobby tier is limited to daily-only crons.** If you're on Hobby and want multi-time pings, either:
+This project is configured for **external cron** (Vercel Hobby is limited to daily-only schedules). Use any free pinger:
 
-- Upgrade to Pro, or
-- Use a free external pinger (e.g. [cron-job.org](https://cron-job.org)) hitting `https://<your-domain>/api/cron/ping` with header `Authorization: Bearer <CRON_SECRET>`.
+- [cron-job.org](https://cron-job.org) — recommended, free, no card, mobile UI
+- GitHub Actions on a `schedule:` trigger
+- EasyCron, Uptime Kuma, or anything else that hits a URL with a custom header
+
+Configure the pinger to:
+
+- URL: `https://<your-domain>/api/cron/ping`
+- Method: `GET`
+- Header: `Authorization: Bearer <CRON_SECRET>`
+- Schedule: whatever cadence you want (e.g. every 2 hours from 9–21 local)
+
+If you upgrade to Vercel Pro later, you can move cron back into `vercel.json` instead.
 
 ## Data
 
